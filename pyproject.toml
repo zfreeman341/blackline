@@ -19,6 +19,9 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# Everyday suite stays fast (live-TDD friendly); the 10MB tier runs with:
+#   uv run pytest -m benchmark -s
+addopts = "-m 'not benchmark'"
 markers = [
-    "benchmark: large-document performance tests (deselect with '-m \"not benchmark\"')",
+    "benchmark: large-document performance tests (excluded by default via addopts)",
 ]
