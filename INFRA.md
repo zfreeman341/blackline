@@ -1,4 +1,4 @@
-# Part II — Production infrastructure
+# Part II: Production infrastructure
 
 > One page, trade-offs over prose. Every production component below maps to a
 > seam visible in the Part I codebase (table at bottom).
@@ -36,7 +36,7 @@
 
 ## Monitoring & Observability
 
-<!-- TODO(zack): metrics (change-set rejection rates BY REASON — ambiguity
+<!-- TODO(zack): metrics (change-set rejection rates BY REASON, since ambiguity
      rate is a product signal, not just an error rate), tracing across the
      propose->apply loop, alerts, structured logs; operational logging vs.
      the audit trail -->

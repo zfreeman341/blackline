@@ -5,7 +5,7 @@ Excluded from the default run (pyproject addopts); run with:
     uv run pytest -m benchmark -s
 
 Each test asserts a generous hard bound (so a slow CI box doesn't flake)
-and prints the actual measurement — the README's performance table quotes
+and prints the actual measurement; the README's performance table quotes
 these numbers. The document is deterministic: seeded RNG over legal
 boilerplate clauses, numbered sections, one unique sentinel clause planted
 ~90% deep so single-target scans pay a realistic worst case."""
@@ -109,7 +109,7 @@ def test_single_text_target_replace_on_10mb(big_text):
 
 def test_200_scattered_range_edits_in_one_request(big_text):
     # Near-linearity claim: one pass over the base builds the output, so
-    # 200 edits cost roughly one traversal — not 200 rebuilds of 10MB.
+    # 200 edits cost roughly one traversal, not 200 rebuilds of 10MB.
     changes = [
         make_change(
             {
@@ -128,7 +128,7 @@ def test_200_scattered_range_edits_in_one_request(big_text):
 
 
 def test_ambiguous_target_error_is_bounded_on_10mb(big_text):
-    # Thousands of matches must produce a fast, capped candidate list —
+    # Thousands of matches must produce a fast, capped candidate list;
     # the refuse-to-guess behavior can't cost unbounded work or payload.
     change = make_change(
         {"operation": "replace", "target": {"text": "the Company"}, "replacement": "X"}

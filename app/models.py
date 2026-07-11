@@ -2,7 +2,7 @@
 
 The domain centers on two objects: a Document (identity + version counter)
 and its append-only Revisions. A document's current text is always the text
-of its latest revision — creation itself is just revision 1. The revision
+of its latest revision; creation itself is just revision 1. The revision
 log is the audit-trail primitive: nothing ever mutates in place.
 """
 
@@ -43,7 +43,7 @@ class Revision(BaseModel):
 
 class Operation(str, Enum):
     """String enum rather than a bare literal: `insert` and `delete` are
-    deliberate future additions — a new member here plus a resolver in
+    deliberate future additions: a new member here plus a resolver in
     app/changes.py is the whole change."""
 
     REPLACE = "replace"
@@ -112,7 +112,7 @@ class ChangeRequest(BaseModel):
     expected_version: int | None = None
     # Provenance: when the caller is applying a reviewed LLM proposal, they
     # pass its id back and the revision's source is derived from that. There
-    # is deliberately no client-supplied `source` field — callers labelling
+    # is deliberately no client-supplied `source` field; callers labelling
     # their own revisions would make the audit trail's meaning negotiable.
     proposal_id: str | None = None
     changes: list[Change] = Field(min_length=1)
@@ -120,7 +120,7 @@ class ChangeRequest(BaseModel):
 
 class ProposedChanges(BaseModel):
     """The shape LLM output must parse into. `changes` reuses the same
-    Change schema PATCH accepts — one source of truth, so a proposal is
+    Change schema PATCH accepts: one source of truth, so a proposal is
     valid iff the identical JSON would be accepted as a direct edit."""
 
     changes: list[Change] = Field(min_length=1)

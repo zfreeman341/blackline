@@ -1,18 +1,18 @@
 """The change engine: resolve -> validate -> apply, atomically.
 
-All changes in a request are interpreted against a single base text — never
+All changes in a request are interpreted against a single base text, never
 sequentially against each other's output. Sequential semantics were
 considered and rejected: order-dependent (the same set means different
 things shuffled), quadratic on large documents (each step rebuilds the
 text), and impossible for a caller to reason about (change 3's offsets
 depend on what changes 1–2 did). Against-base semantics make a change set
-a pure function of (base version, changes) — which is also what makes the
+a pure function of (base version, changes), which is also what makes the
 revision log's `base_version` meaningful.
 
 This module is deliberately HTTP-free: it raises typed ChangeError
 subclasses carrying a message and a structured payload; the route layer
 translates them into the 422 envelope. Version conflicts (409) are not
-this module's concern — they are decided before resolution begins.
+this module's concern; they are decided before resolution begins.
 """
 
 from dataclasses import dataclass
@@ -110,7 +110,7 @@ def _resolve_replace(base_text: str, change: Change, index: int) -> ResolvedEdit
     # contract is the product behavior here. The candidate list is exactly
     # what the caller needs to disambiguate.
     raise ChangeError(
-        f"change {index}: target text {target.text!r} is ambiguous — "
+        f"change {index}: target text {target.text!r} is ambiguous: "
         f"{len(occurrences)} occurrences found; specify 'occurrence' or use a range",
         {
             "change_index": index,
@@ -126,7 +126,7 @@ def _resolve_replace(base_text: str, change: Change, index: int) -> ResolvedEdit
 
 
 # Operation dispatch: adding `insert`/`delete` means one enum member plus one
-# resolver here — both reduce to a ResolvedEdit (insert: empty span at the
+# resolver here; both reduce to a ResolvedEdit (insert: empty span at the
 # anchor; delete: empty new_text).
 _RESOLVERS: dict[Operation, Callable[[str, Change, int], ResolvedEdit]] = {
     Operation.REPLACE: _resolve_replace,
@@ -134,7 +134,7 @@ _RESOLVERS: dict[Operation, Callable[[str, Change, int], ResolvedEdit]] = {
 
 
 def _find_occurrences(haystack: str, needle: str) -> list[int]:
-    """Non-overlapping matches, left to right — the natural way a person
+    """Non-overlapping matches, left to right: the natural way a person
     counts occurrences ('the 2nd "Company"')."""
     found: list[int] = []
     position = haystack.find(needle)
@@ -159,7 +159,7 @@ def _validate_no_overlap(edits: list[ResolvedEdit]) -> list[ResolvedEdit]:
     """Two resolved ranges overlapping means the request contradicts itself;
     applying either order would silently pick a winner. Also rejected: two
     insertions at the identical position (their relative order would be a
-    guess). Touching boundaries are fine — [3,5) then [5,8) compose
+    guess). Touching boundaries are fine: [3,5) then [5,8) compose
     unambiguously, and an insertion at a range's start applies before it."""
     ordered = sorted(edits, key=lambda e: (e.start, e.end))
     for previous, current in zip(ordered, ordered[1:]):

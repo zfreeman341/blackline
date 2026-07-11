@@ -2,7 +2,7 @@
 
 Route handlers and services depend only on DocumentRepository; the in-memory
 implementation is one binding of that interface (production maps it to
-Postgres — see INFRA.md). Nothing above this layer may know how documents
+Postgres; see INFRA.md). Nothing above this layer may know how documents
 are stored.
 
 Revisions are append-only. There is no update-in-place anywhere in this

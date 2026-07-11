@@ -13,7 +13,7 @@ def create_app(
     app = FastAPI(title="Blackline", description="Document redlining & search service")
     app.state.repository = repository if repository is not None else InMemoryDocumentRepository()
     # Default resolves from env: MOCK_LLM=true (the default) needs no keys
-    # and no network — tests and the demo run anywhere.
+    # and no network, so tests and the demo run anywhere.
     app.state.llm = llm_client if llm_client is not None else client_from_env()
     register_error_handlers(app)
     app.include_router(router)

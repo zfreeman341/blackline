@@ -1,5 +1,5 @@
 """HTTP surface. Handlers translate between the API shapes and the
-repository/services — no storage details, no business rules beyond wiring."""
+repository/services: no storage details, no business rules beyond wiring."""
 
 import uuid
 
@@ -68,7 +68,7 @@ def list_documents(
     ]
 
 
-# NOTE: declared before /documents/{document_id} — FastAPI matches routes in
+# NOTE: declared before /documents/{document_id}, because FastAPI matches routes in
 # declaration order, and "search" must not be captured as a document id.
 @router.get("/documents/search", response_model=SearchResponse)
 def search_all_documents(
@@ -133,7 +133,7 @@ def patch_document(
 ) -> PatchResponse:
     document = require_document(repo, document_id)
 
-    # Version gate: evaluated first — a stale expectation means nothing else
+    # Version gate: evaluated first; a stale expectation means nothing else
     # about the request is meaningful (its ranges refer to a different text).
     if (
         payload.expected_version is not None
@@ -191,7 +191,7 @@ def propose_changes(
     This endpoint NEVER writes. The model suggests; the caller reviews and
     submits the proposal to PATCH themselves. A proposal is returned only
     if it would survive the same resolve/validate pipeline a direct PATCH
-    runs — hallucinated targets die here, as 422s, with the same candidate
+    runs; hallucinated targets die here, as 422s, with the same candidate
     machinery a human gets."""
     document = require_document(repo, document_id)
     text = repo.get_text(document.id)

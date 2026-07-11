@@ -14,7 +14,7 @@ pretty()  { python3 -m json.tool; }
 field()   { python3 -c "import sys, json; print(json.load(sys.stdin)[\"$1\"])"; }
 
 if ! curl -s -o /dev/null "$BASE/openapi.json"; then
-    echo "No server on $BASE — starting one (MOCK_LLM=true)..."
+    echo "No server on $BASE, starting one (MOCK_LLM=true)..."
     MOCK_LLM=true uv run uvicorn app.main:app --port "${PORT:-8000}" --log-level warning &
     SERVER_PID=$!
     trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
@@ -34,7 +34,7 @@ echo "created document $DOC_ID at version $(echo "$CREATE_RESPONSE" | field vers
 banner "2) Search across documents: snippets with context, offsets you can act on"
 curl -s "$BASE/documents/search?q=termination&limit=5" | pretty
 
-banner "3) Apply an unambiguous change — full updated text + new version come back"
+banner "3) Apply an unambiguous change: full updated text + new version come back"
 curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -d '{
   "changes": [
     { "operation": "replace",
@@ -43,7 +43,7 @@ curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -
   ]
 }' | pretty
 
-banner "4) Attempt an ambiguous change — 'thirty (30) days' appears in BOTH the payment and termination clauses. The API refuses to guess: 422 + candidates"
+banner "4) Attempt an ambiguous change: 'thirty (30) days' appears in BOTH the payment and termination clauses. The API refuses to guess: 422 + candidates"
 curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -d '{
   "changes": [
     { "operation": "replace",
@@ -59,7 +59,7 @@ curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -
       "target": { "text": "thirty (30) days", "occurrence": 2 },
       "replacement": "sixty (60) days" }
   ]
-}' | field version | sed 's/^/applied — document is now at version /'
+}' | field version | sed 's/^/applied: document is now at version /'
 
 banner "6) A stale write: expected_version=1, but the document has moved on -> 409"
 curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -d '{
@@ -71,7 +71,7 @@ curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -
   ]
 }' | pretty
 
-banner "7) Propose a change in natural language — the LLM suggests, NOTHING is applied"
+banner "7) Propose a change in natural language: the LLM suggests, NOTHING is applied"
 PROPOSAL=$(curl -s -X POST "$BASE/documents/$DOC_ID/changes/propose" \
     -H 'Content-Type: application/json' \
     -d '{"instruction": "change the governing law from New York to Delaware"}')
@@ -88,7 +88,7 @@ print(json.dumps({
     'proposal_id': p['proposal_id'],
     'changes': p['changes'],
 }))" | curl -s -X PATCH "$BASE/documents/$DOC_ID" -H 'Content-Type: application/json' -d @- \
-     | field version | sed 's/^/applied — document is now at version /'
+     | field version | sed 's/^/applied: document is now at version /'
 
-banner "9) The audit trail: every revision records its base version, the change set as submitted, and its provenance — human edits and the applied LLM proposal, side by side"
+banner "9) The audit trail: every revision records its base version, the change set as submitted, and its provenance: human edits and the applied LLM proposal, side by side"
 curl -s "$BASE/documents/$DOC_ID/revisions" | pretty

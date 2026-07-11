@@ -1,6 +1,6 @@
 """Error envelope: every 4xx/5xx body is {"error": str, "code": int}.
 
-`code` mirrors the HTTP status — one source of truth for the error class.
+`code` mirrors the HTTP status: one source of truth for the error class.
 Structured, machine-readable detail (e.g. the ambiguous-target candidate
 list) is carried in additional typed fields alongside the envelope, never
 by inventing a parallel numbering scheme.
@@ -48,7 +48,7 @@ def register_error_handlers(app: FastAPI) -> None:
         first = exc.errors()[0] if exc.errors() else {}
         loc = ".".join(str(part) for part in first.get("loc", ()))
         detail = f"{loc}: {first.get('msg', 'invalid request')}" if loc else "invalid request"
-        return envelope(422, f"invalid request payload — {detail}")
+        return envelope(422, f"invalid request payload: {detail}")
 
     @app.exception_handler(StarletteHTTPException)
     async def handle_http_exception(

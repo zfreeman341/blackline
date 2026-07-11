@@ -25,7 +25,7 @@ GOVERNING_LAW_DOC = {
 
 
 class StubLLM:
-    """A provider that returns a fixed payload or fails — for exercising the
+    """A provider that returns a fixed payload or fails, for exercising the
     parse/error paths without depending on mock heuristics."""
 
     def __init__(self, output: str | None = None, fail: bool = False):
@@ -69,7 +69,7 @@ def test_mock_proposal_round_trips_through_patch_with_provenance(client):
         }
     ]
 
-    # The caller reviews, then applies — same schema, pinned to the version
+    # The caller reviews, then applies: same schema, pinned to the version
     # the proposal was validated against, carrying the proposal id back.
     applied = client.patch(
         f"/documents/{doc['id']}",

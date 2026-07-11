@@ -2,11 +2,11 @@
 
 The service depends only on LLMClient (text in -> raw model output out).
 MockLLMClient is the default binding (MOCK_LLM=true): deterministic,
-network-free, and — importantly — it returns a raw JSON *string*, so the
+network-free, and importantly it returns a raw JSON *string*, so the
 mock path exercises the same parse-and-validate pipeline as a real
 provider. AnthropicClient is one env var away (MOCK_LLM=false +
 ANTHROPIC_API_KEY). Which client, which model, and where it runs
-(in-tenant for legal clients) are per-client policy — see INFRA.md.
+(in-tenant for legal clients) are per-client policy; see INFRA.md.
 
 Failure taxonomy, deliberately split:
 - LLMError (provider down, malformed output)  -> 502: our dependency
@@ -61,7 +61,7 @@ class MockLLMClient:
       'replace X with Y'          (X/Y optionally double-quoted)
       'change ... from X to Y'
     Anything else yields an empty proposal, which fails schema validation
-    downstream — the same surface a confused real model would hit.
+    downstream, the same surface a confused real model would hit.
     """
 
     _PATTERNS = [
