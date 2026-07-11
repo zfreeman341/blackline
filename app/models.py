@@ -137,6 +137,20 @@ class DocumentSummary(BaseModel):
     version: int
 
 
+class SearchResult(BaseModel):
+    document_id: str
+    offset: int  # character offset of the match in the document text
+    snippet: str
+
+
+class SearchResponse(BaseModel):
+    query: str
+    total: int  # total matches before pagination
+    limit: int
+    offset: int  # pagination offset (in matches, not characters)
+    results: list[SearchResult]
+
+
 class TargetCandidate(BaseModel):
     """One possible resolution of an ambiguous text target. Returned (as a
     list) with the 422 so the caller has exactly what they need to

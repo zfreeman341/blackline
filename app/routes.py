@@ -1,7 +1,7 @@
 """HTTP surface. Handlers translate between the API shapes and the
 repository/services — no storage details, no business rules beyond wiring."""
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.changes import ChangeError, apply_change_set
 from app.errors import APIError
@@ -13,8 +13,11 @@ from app.models import (
     DocumentSummary,
     PatchResponse,
     RevisionSummary,
+    SearchResponse,
+    SearchResult,
 )
 from app.repository import DocumentRepository
+from app.search import DEFAULT_CONTEXT_CHARS, SearchMatch, find_matches
 
 router = APIRouter()
 
@@ -58,6 +61,54 @@ def list_documents(
         DocumentSummary(id=d.id, title=d.title, version=d.current_version)
         for d in repo.list()
     ]
+
+
+# NOTE: declared before /documents/{document_id} — FastAPI matches routes in
+# declaration order, and "search" must not be captured as a document id.
+@router.get("/documents/search", response_model=SearchResponse)
+def search_all_documents(
+    q: str = Query(min_length=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    context: int = Query(default=DEFAULT_CONTEXT_CHARS, ge=0, le=500),
+    repo: DocumentRepository = Depends(get_repository),
+) -> SearchResponse:
+    matches: list[SearchMatch] = []
+    for document in repo.list():
+        text = repo.get_text(document.id)
+        assert text is not None
+        matches.extend(find_matches(document.id, text, q, context))
+    return _paginated(q, matches, limit, offset)
+
+
+@router.get("/documents/{document_id}/search", response_model=SearchResponse)
+def search_one_document(
+    document_id: str,
+    q: str = Query(min_length=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    context: int = Query(default=DEFAULT_CONTEXT_CHARS, ge=0, le=500),
+    repo: DocumentRepository = Depends(get_repository),
+) -> SearchResponse:
+    document = require_document(repo, document_id)
+    text = repo.get_text(document.id)
+    assert text is not None
+    return _paginated(q, find_matches(document.id, text, q, context), limit, offset)
+
+
+def _paginated(
+    query: str, matches: list[SearchMatch], limit: int, offset: int
+) -> SearchResponse:
+    return SearchResponse(
+        query=query,
+        total=len(matches),
+        limit=limit,
+        offset=offset,
+        results=[
+            SearchResult(document_id=m.document_id, offset=m.offset, snippet=m.snippet)
+            for m in matches[offset : offset + limit]
+        ],
+    )
 
 
 @router.get("/documents/{document_id}", response_model=DocumentResponse)
