@@ -1,0 +1,17 @@
+MASTER SERVICES AGREEMENT
+
+This Master Services Agreement (the "Agreement") is entered into by and between Acme Consulting LLC (the "Company") and Bluestone Ventures Inc. (the "Client").
+
+1. Services. The Company shall provide the consulting services described in each statement of work executed by both parties. The Company shall perform all services in a professional and workmanlike manner.
+
+2. Fees. The Client shall pay each invoice within thirty (30) days of receipt. Late payments accrue interest at one percent (1%) per month or the maximum rate permitted by law, whichever is less.
+
+3. Confidentiality. Each party shall protect the other party's confidential information with no less than reasonable care, and shall use such information solely to perform its obligations under this Agreement.
+
+4. Term and Termination. Either party may terminate this Agreement upon thirty (30) days' written notice to the other party. Sections 3, 5, and 6 survive termination.
+
+5. Limitation of Liability. Neither party shall be liable for any indirect, incidental, special, or consequential damages arising out of or relating to this Agreement.
+
+6. Governing Law. This Agreement shall be governed by the laws of the State of New York, without regard to its conflict of laws principles.
+
+7. Entire Agreement. This Agreement constitutes the entire agreement between the parties and supersedes all prior or contemporaneous understandings, whether written or oral.
