@@ -204,6 +204,16 @@ def propose_changes(
     except LLMError as error:
         raise APIError(502, str(error))
 
+    # An empty proposal is the model's well-formed way of saying "this
+    # instruction doesn't map onto this document" (e.g. it names a clause
+    # that doesn't exist). That's a caller problem, not a provider failure.
+    if not proposal.changes:
+        raise APIError(
+            422,
+            "no changes proposed: the instruction could not be mapped onto "
+            "this document as it stands",
+        )
+
     try:
         validate_change_set(text, proposal.changes)
     except ChangeError as error:

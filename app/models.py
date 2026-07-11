@@ -121,9 +121,14 @@ class ChangeRequest(BaseModel):
 class ProposedChanges(BaseModel):
     """The shape LLM output must parse into. `changes` reuses the same
     Change schema PATCH accepts: one source of truth, so a proposal is
-    valid iff the identical JSON would be accepted as a direct edit."""
+    valid iff the identical JSON would be accepted as a direct edit.
 
-    changes: list[Change] = Field(min_length=1)
+    An empty list is schema-valid here (unlike ChangeRequest): the model is
+    instructed to return {"changes": []} when an instruction can't be
+    fulfilled against the document, and the route turns that into a 422.
+    The caller's instruction is the problem there, not the provider."""
+
+    changes: list[Change]
 
 
 class ProposeRequest(BaseModel):

@@ -116,10 +116,20 @@ def test_ambiguous_proposal_surfaces_candidates(client):
     assert [c["occurrence"] for c in body["candidates"]] == [1, 2]
 
 
-def test_uninterpretable_instruction_is_502_not_a_guess(client):
+def test_uninterpretable_instruction_is_422_not_a_guess(client):
+    # The mock (like a real model following the prompt) returns an empty
+    # proposal for an instruction it can't map. That's the caller's problem:
+    # 422, not a provider failure.
     doc = client.post("/documents", json=GOVERNING_LAW_DOC).json()
     response = propose(client, doc["id"], "make this contract better somehow")
-    assert_error_envelope(response, 502)
+    body = assert_error_envelope(response, 422)
+    assert "could not be mapped" in body["error"]
+
+
+def test_empty_proposal_from_model_is_422():
+    client = client_with(StubLLM(output=json.dumps({"changes": []})))
+    doc = client.post("/documents", json=GOVERNING_LAW_DOC).json()
+    assert_error_envelope(propose(client, doc["id"], "remove the arbitration clause"), 422)
 
 
 # --- provider failure taxonomy ----------------------------------------------------
@@ -131,6 +141,7 @@ def test_malformed_model_output_is_502_envelope():
     response = propose(client, doc["id"], "anything")
     body = assert_error_envelope(response, 502)
     assert "malformed" in body["error"]
+    assert "pydantic" not in body["error"].lower()  # no library internals leak
 
 
 def test_schema_invalid_model_output_is_502_envelope():

@@ -36,6 +36,8 @@ Rules:
 - "target.text" must be copied character-for-character from the document.
 - Omit "occurrence" unless the instruction singles out one of several matches.
 - Propose the minimal set of changes that fulfils the instruction.
+- If the instruction cannot be fulfilled by replacing text that exists in the
+  document, respond with exactly {{"changes": []}}. Never invent text.
 
 Document:
 <document>
@@ -60,8 +62,9 @@ class MockLLMClient:
     Understands two instruction shapes:
       'replace X with Y'          (X/Y optionally double-quoted)
       'change ... from X to Y'
-    Anything else yields an empty proposal, which fails schema validation
-    downstream, the same surface a confused real model would hit.
+    Anything else yields an empty proposal — the same "this instruction
+    doesn't map onto the document" contract the real prompt demands, which
+    the route surfaces as a 422.
     """
 
     _PATTERNS = [
@@ -100,10 +103,11 @@ class AnthropicClient:
 
     def propose(self, document_text: str, instruction: str) -> str:
         try:
+            # No sampling params: current Claude models reject temperature/top_p;
+            # output shape is constrained by the prompt + downstream validation.
             response = self._client.messages.create(
                 model=self._model,
                 max_tokens=4096,
-                temperature=0,
                 messages=[
                     {
                         "role": "user",
@@ -130,7 +134,9 @@ def parse_proposal(raw_output: str) -> ProposedChanges:
     try:
         return ProposedChanges.model_validate(json.loads(cleaned))
     except (json.JSONDecodeError, ValidationError) as error:
-        raise LLMError(f"LLM returned a malformed proposal: {error}") from error
+        # Deliberately terse: the caller did nothing wrong (that's why this is
+        # a 502), and library validation internals are not theirs to see.
+        raise LLMError("LLM returned a malformed proposal") from error
 
 
 def client_from_env() -> LLMClient:
