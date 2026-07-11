@@ -7,9 +7,10 @@ log is the audit-trail primitive: nothing ever mutates in place.
 """
 
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 RevisionSource = Literal["api", "llm_proposal_applied"]
 
@@ -34,6 +35,84 @@ class Revision(BaseModel):
     proposal_id: str | None = None
 
 
+# --- Change schema ------------------------------------------------------------
+# Shared verbatim between the PATCH path and the LLM proposal path: one source
+# of truth for what a valid change is, so a model-generated proposal is
+# validated by exactly the rules a human submission is.
+
+
+class Operation(str, Enum):
+    """String enum rather than a bare literal: `insert` and `delete` are
+    deliberate future additions — a new member here plus a resolver in
+    app/changes.py is the whole change."""
+
+    REPLACE = "replace"
+
+
+class TextTarget(BaseModel):
+    text: str = Field(min_length=1)
+    occurrence: int | None = Field(default=None, ge=1)  # 1-indexed
+
+
+class CharRange(BaseModel):
+    """Half-open [start, end) character offsets. start == end is a valid
+    empty span (replacing it is an insertion at that position)."""
+
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def start_not_after_end(self) -> "CharRange":
+        if self.start > self.end:
+            raise ValueError(f"range start ({self.start}) must be <= end ({self.end})")
+        return self
+
+
+class Change(BaseModel):
+    operation: Operation
+    # Exactly one of `target` (find text) or `range` (explicit offsets).
+    target: TextTarget | None = None
+    range: CharRange | None = None
+    # The client's sketch spells the new content `replacement` on text-target
+    # changes and `text` on range changes; we accept both spellings for either
+    # targeting style, canonicalized to `replacement`.
+    replacement: str | None = Field(
+        default=None, validation_alias=AliasChoices("replacement", "text")
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_conflicting_replacement_keys(cls, data: Any) -> Any:
+        # Both spellings present with different values: refusing to guess
+        # which one the caller meant beats silently preferring one.
+        if (
+            isinstance(data, dict)
+            and "replacement" in data
+            and "text" in data
+            and data["replacement"] != data["text"]
+        ):
+            raise ValueError(
+                "'replacement' and 'text' are aliases and were given conflicting values"
+            )
+        return data
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> "Change":
+        if (self.target is None) == (self.range is None):
+            raise ValueError("exactly one of 'target' or 'range' must be provided")
+        if self.operation is Operation.REPLACE and self.replacement is None:
+            raise ValueError("replace requires 'replacement' (alias: 'text')")
+        return self
+
+
+class ChangeRequest(BaseModel):
+    # Optional opt-in optimistic concurrency: when present and stale -> 409.
+    # Absent, changes resolve against the current version at request time;
+    # the revision records the resolved base_version either way.
+    expected_version: int | None = None
+    changes: list[Change] = Field(min_length=1)
+
+
 # --- API request/response models ---------------------------------------------
 
 
@@ -56,3 +135,29 @@ class DocumentSummary(BaseModel):
     id: str
     title: str
     version: int
+
+
+class TargetCandidate(BaseModel):
+    """One possible resolution of an ambiguous text target. Returned (as a
+    list) with the 422 so the caller has exactly what they need to
+    disambiguate: pick an occurrence or use the range directly."""
+
+    occurrence: int
+    range: CharRange
+    context: str
+
+
+class PatchResponse(DocumentResponse):
+    base_version: int
+
+
+class RevisionSummary(BaseModel):
+    """Revision-history entry. Omits the revision text (documents can be
+    10MB+); fetching a specific revision's text is a listed next step."""
+
+    version: int
+    base_version: int | None
+    created_at: datetime
+    change_summary: list[dict[str, Any]] | None
+    source: RevisionSource
+    proposal_id: str | None
