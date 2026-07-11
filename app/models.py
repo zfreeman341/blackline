@@ -110,7 +110,35 @@ class ChangeRequest(BaseModel):
     # Absent, changes resolve against the current version at request time;
     # the revision records the resolved base_version either way.
     expected_version: int | None = None
+    # Provenance: when the caller is applying a reviewed LLM proposal, they
+    # pass its id back and the revision's source is derived from that. There
+    # is deliberately no client-supplied `source` field — callers labelling
+    # their own revisions would make the audit trail's meaning negotiable.
+    proposal_id: str | None = None
     changes: list[Change] = Field(min_length=1)
+
+
+class ProposedChanges(BaseModel):
+    """The shape LLM output must parse into. `changes` reuses the same
+    Change schema PATCH accepts — one source of truth, so a proposal is
+    valid iff the identical JSON would be accepted as a direct edit."""
+
+    changes: list[Change] = Field(min_length=1)
+
+
+class ProposeRequest(BaseModel):
+    instruction: str = Field(min_length=1)
+
+
+class ProposalResponse(BaseModel):
+    proposal_id: str
+    document_id: str
+    # The version this proposal was validated against. Apply it with
+    # expected_version=base_version to guarantee it still means what it
+    # meant when proposed.
+    base_version: int
+    instruction: str
+    changes: list[Change]
 
 
 # --- API request/response models ---------------------------------------------

@@ -1,10 +1,13 @@
 """HTTP surface. Handlers translate between the API shapes and the
 repository/services — no storage details, no business rules beyond wiring."""
 
+import uuid
+
 from fastapi import APIRouter, Depends, Query, Request
 
-from app.changes import ChangeError, apply_change_set
+from app.changes import ChangeError, apply_change_set, validate_change_set
 from app.errors import APIError
+from app.llm import LLMClient, LLMError, parse_proposal
 from app.models import (
     ChangeRequest,
     CreateDocumentRequest,
@@ -12,6 +15,8 @@ from app.models import (
     DocumentResponse,
     DocumentSummary,
     PatchResponse,
+    ProposalResponse,
+    ProposeRequest,
     RevisionSummary,
     SearchResponse,
     SearchResult,
@@ -152,6 +157,8 @@ def patch_document(
     except ChangeError as error:
         raise APIError(422, error.message, error.extra)
 
+    # Provenance is derived, never client-asserted: passing a proposal_id is
+    # the caller saying "this is the reviewed proposal I'm applying".
     revision = repo.append_revision(
         document_id=document.id,
         text=new_text,
@@ -160,6 +167,8 @@ def patch_document(
             change.model_dump(mode="json", exclude_none=True)
             for change in payload.changes
         ],
+        source="llm_proposal_applied" if payload.proposal_id else "api",
+        proposal_id=payload.proposal_id,
     )
     return PatchResponse(
         id=document.id,
@@ -167,6 +176,45 @@ def patch_document(
         version=revision.version,
         base_version=base_version,
         text=new_text,
+    )
+
+
+@router.post("/documents/{document_id}/changes/propose", response_model=ProposalResponse)
+def propose_changes(
+    document_id: str,
+    payload: ProposeRequest,
+    request: Request,
+    repo: DocumentRepository = Depends(get_repository),
+) -> ProposalResponse:
+    """Natural-language instruction -> validated structured proposal.
+
+    This endpoint NEVER writes. The model suggests; the caller reviews and
+    submits the proposal to PATCH themselves. A proposal is returned only
+    if it would survive the same resolve/validate pipeline a direct PATCH
+    runs — hallucinated targets die here, as 422s, with the same candidate
+    machinery a human gets."""
+    document = require_document(repo, document_id)
+    text = repo.get_text(document.id)
+    assert text is not None
+
+    llm: LLMClient = request.app.state.llm
+    try:
+        raw_output = llm.propose(text, payload.instruction)
+        proposal = parse_proposal(raw_output)
+    except LLMError as error:
+        raise APIError(502, str(error))
+
+    try:
+        validate_change_set(text, proposal.changes)
+    except ChangeError as error:
+        raise APIError(422, f"proposal failed validation: {error.message}", error.extra)
+
+    return ProposalResponse(
+        proposal_id=uuid.uuid4().hex,
+        document_id=document.id,
+        base_version=document.current_version,
+        instruction=payload.instruction,
+        changes=proposal.changes,
     )
 
 

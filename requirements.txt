@@ -1,4 +1,5 @@
 # pip fallback — canonical dependency management is uv (see pyproject.toml / uv.lock)
+anthropic>=0.116
 fastapi>=0.115
 pydantic>=2.7
 uvicorn>=0.30

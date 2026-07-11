@@ -53,9 +53,14 @@ class ResolvedEdit:
 def apply_change_set(base_text: str, changes: list[Change]) -> str:
     """Full pipeline. Raises ChangeError (nothing applied) or returns the
     new text. One request -> one atomic transformation."""
-    edits = resolve_change_set(base_text, changes)
-    ordered = _validate_no_overlap(edits)
-    return _apply_edits(base_text, ordered)
+    return _apply_edits(base_text, validate_change_set(base_text, changes))
+
+
+def validate_change_set(base_text: str, changes: list[Change]) -> list[ResolvedEdit]:
+    """Pipeline steps 2-3 (resolve + overlap check) without applying.
+    This is what the proposal path runs: an LLM proposal must survive
+    exactly the validation a direct PATCH would, but must never write."""
+    return _validate_no_overlap(resolve_change_set(base_text, changes))
 
 
 def resolve_change_set(base_text: str, changes: list[Change]) -> list[ResolvedEdit]:
