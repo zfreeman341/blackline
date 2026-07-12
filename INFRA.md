@@ -34,7 +34,7 @@ flowchart LR
 
 ## CI/CD & Deployment
 
-- **Pipeline:** lint, unit suite (58 tests, under a second), benchmark tier as a performance regression gate, build, ship. On 10MB documents performance is a correctness property: a quadratic regression fails CI, not a client.
+- **Pipeline:** lint, unit suite (59 tests, under a second), benchmark tier as a performance regression gate, build, ship. On 10MB documents performance is a correctness property: a quadratic regression fails CI, not a client.
 - **Rollout:** rolling, one replica at a time; no downtime. Old and new code coexisting is safe on two legs: stateless replicas, backward-compatible migrations. Rollback is redeploying the previous image.
 - **Migrations:** additive first. Append-only revisions mean history is never rewritten, so no backfills; risk concentrates on the small mutable `documents` table.
 

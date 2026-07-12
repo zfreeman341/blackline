@@ -12,7 +12,7 @@ The worked example throughout is an in-house legal team redlining vendor contrac
 
 ```bash
 uv sync                         # or: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-uv run pytest                   # 58 tests, under a second
+uv run pytest                   # 59 tests, under a second
 uv run pytest -m benchmark -s   # ~10MB tier, prints timings
 ./samples.sh                    # full product story; starts its own server
 ```
