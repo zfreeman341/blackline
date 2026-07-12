@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-BASE="${BASE_URL:-http://127.0.0.1:8000}"
+BASE="${BASE_URL:-http://127.0.0.1:${PORT:-8000}}"
 
 banner()  { printf '\n\n════ %s ════\n\n' "$*"; }
 pretty()  { python3 -m json.tool; }
@@ -76,8 +76,6 @@ PROPOSAL=$(curl -s -X POST "$BASE/documents/$DOC_ID/changes/propose" \
     -H 'Content-Type: application/json' \
     -d '{"instruction": "change the governing law from New York to Delaware"}')
 echo "$PROPOSAL" | pretty
-PROPOSAL_ID=$(echo "$PROPOSAL" | field proposal_id)
-BASE_VERSION=$(echo "$PROPOSAL" | field base_version)
 
 banner "8) Human reviews, then applies the proposal via the SAME PATCH path, pinned to the version it was validated against, carrying its proposal_id"
 echo "$PROPOSAL" | python3 -c "

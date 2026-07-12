@@ -112,7 +112,7 @@ class ChangeRequest(BaseModel):
     expected_version: int | None = None
     # Provenance: when the caller is applying a reviewed LLM proposal, they
     # pass its id back and the revision's source is derived from that. There
-    # is deliberately no client-supplied `source` field; callers labelling
+    # is deliberately no client-supplied `source` field; callers labeling
     # their own revisions would make the audit trail's meaning negotiable.
     proposal_id: str | None = None
     changes: list[Change] = Field(min_length=1)

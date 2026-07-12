@@ -35,7 +35,7 @@ Rules:
 - "operation" must be "replace".
 - "target.text" must be copied character-for-character from the document.
 - Omit "occurrence" unless the instruction singles out one of several matches.
-- Propose the minimal set of changes that fulfils the instruction.
+- Propose the minimal set of changes that fulfills the instruction.
 - If the instruction cannot be fulfilled by replacing text that exists in the
   document, respond with exactly {{"changes": []}}. Never invent text.
 
